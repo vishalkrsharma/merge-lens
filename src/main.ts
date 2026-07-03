@@ -21,8 +21,19 @@ async function bootstrap() {
       },
     }),
   );
+  const allowedOrigins = process.env.FRONTEND_URLS?.split(',').map((o) => o.trim()) ?? [];
   app.enableCors({
-    origin: process.env.FRONTEND_URLS?.split(',').map((o) => o.trim()) ?? [],
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/[^.]+\.localhost(:\d+)?$/.test(origin)
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });

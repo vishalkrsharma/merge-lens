@@ -55,6 +55,8 @@ model User {
   accounts            Account[]
   repositories        Repository[]
   apiKeys             UserApiKey[]
+  members             Member[]
+  invitations         Invitation[]
 
   @@unique([email])
   @@map("user")
@@ -108,25 +110,79 @@ model Verification {
   @@map("verification")
 }
 
+// ─── Organization models (better-auth organization plugin)
+
+model Organization {
+  id           String       @id @default(cuid())
+  name         String
+  slug         String       @unique
+  logo         String?
+  metadata     String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  members      Member[]
+  invitations  Invitation[]
+  repositories Repository[]
+
+  @@map("organization")
+}
+
+model Member {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("member")
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("member")
+}
+
+model Invitation {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime
+  inviterId      String
+  inviter        User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  teamId         String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([inviterId])
+  @@map("invitation")
+}
+
 // ─── MergeLens models
 
 model Repository {
-  id                String      @id @default(cuid())
+  id                String        @id @default(cuid())
   owner             String
   repo              String
   installationId    Int
-  isActive          Boolean     @default(false) @map("is_active")
+  isActive          Boolean       @default(false) @map("is_active")
   enabledAgents     AgentType[]
-  severityThreshold Severity    @default(low)
-  installedAt       DateTime    @default(now())
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  severityThreshold Severity      @default(low)
+  installedAt       DateTime      @default(now())
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
   userId            String
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId    String?       @map("organization_id")
+  organization      Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   reviews           Review[]
 
   @@unique([owner, repo, userId])
+  @@unique([owner, repo, organizationId])
   @@index([userId])
+  @@index([organizationId])
   @@map("repository")
 }
 
@@ -194,6 +250,8 @@ model PendingInstallation {
   githubLogin     String
   installationId  Int
   repositories    Json?
+  isOrgInstall    Boolean  @default(false) @map("is_org_install")
+  orgLogin        String?  @map("org_login")
   createdAt       DateTime @default(now())
 
   @@map("pending_installation")
