@@ -1,6 +1,18 @@
 # MergeLens Backend
 
-NestJS backend for MergeLens — an AI-powered GitHub PR review pipeline.
+NestJS backend for MergeLens — an AI-powered GitHub PR review pipeline. Automatically reviews pull requests using a multi-agent AI system and posts findings as inline GitHub comments.
+
+## Features
+
+- **Multi-agent AI review** — four parallel agents (Bug, Security, Performance, Style) followed by a Summary agent produce structured findings with file, line, severity, and fix suggestions
+- **Provider-agnostic LLM layer** — supports Anthropic, Google Gemini, OpenAI, Voyage, and Ollama (local); users bring their own API keys
+- **RAG-enhanced context** — repository docs are embedded at startup and injected into each review for richer, project-aware analysis
+- **GitHub App integration** — installs on personal accounts or organisations; webhooks trigger reviews on PR open/sync/reopen
+- **Live PR status comments** — posts a running status comment on GitHub during review, updated as each agent completes
+- **Real-time frontend updates** — Socket.io gateway emits review events so the dashboard updates without polling
+- **PostgreSQL job queue** — pg-boss handles review jobs with retry on failure; no Redis required
+- **Observability** — Prometheus metrics at `/api/metrics`, structured Pino logging, lightweight span tracing
+- **Neon preview databases** — each PR automatically gets an isolated Neon DB branch; migrations are applied and the connection string is posted as a PR comment
 
 ## Local development
 
@@ -57,11 +69,7 @@ neonctl auth login       # authenticate with your Neon account
 pnpm hooks:install       # install the post-checkout git hook
 ```
 
-After that, `git checkout feat/my-feature` will automatically update `DATABASE_URL` in `.env.local` to the preview branch for that feature. You can also trigger it manually:
-
-```bash
-pnpm db:preview
-```
+After that, `git checkout feat/my-feature` will automatically update `DATABASE_URL` in `.env.local` to the preview branch for that feature.
 
 ### GitHub Actions secrets required
 
@@ -70,14 +78,34 @@ pnpm db:preview
 | `NEON_PROJECT_ID` | `falling-field-21678175` |
 | `NEON_API_KEY` | Generate at console.neon.tech → Account settings → API keys |
 
+## Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL (Neon) connection string |
+| `GOOGLE_API_KEY` | Gemini LLM + embeddings |
+| `GITHUB_APP_ID` | GitHub App numeric ID |
+| `GITHUB_CLIENT_ID` | OAuth app client ID |
+| `GITHUB_CLIENT_SECRET` | OAuth app client secret |
+| `GITHUB_WEBHOOK_SECRET` | HMAC webhook verification |
+| `BETTER_AUTH_SECRET` | Session signing key |
+| `BETTER_AUTH_URL` | Must be the **frontend** URL (auth callbacks land on the frontend proxy) |
+| `FRONTEND_URLS` | Comma-separated allowed origins |
+| `PORT` | HTTP listen port (default: 3000) |
+
+The GitHub App private key must be placed at `keys/merge-lens-private-key.pem`.
+
 ## Testing
 
 ```bash
 pnpm test           # unit tests
 pnpm test:watch     # watch mode
 pnpm test:cov       # coverage report
-pnpm test:e2e       # end-to-end tests
 ```
+
+## API docs
+
+Scalar UI: `/api/docs` · OpenAPI JSON: `/api/swagger-json/json`
 
 ## Deployment
 
@@ -85,5 +113,3 @@ pnpm test:e2e       # end-to-end tests
 |-------------|-----|
 | Production  | `https://merge-lens-backend.onrender.com` |
 | Local       | `http://localhost:8080` |
-
-API docs: `/api/docs` (Scalar UI) · `/api/swagger-json/json` (OpenAPI JSON)
