@@ -106,10 +106,3 @@ pnpm test:cov       # coverage report
 ## API docs
 
 Scalar UI: `/api/docs` · OpenAPI JSON: `/api/swagger-json/json`
-
-## Deployment
-
-| Environment | URL |
-|-------------|-----|
-| Production  | `https://merge-lens-backend.onrender.com` |
-| Local       | `http://localhost:8080` |
