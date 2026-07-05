@@ -42,6 +42,7 @@ export class CommentsService {
     repo: string,
     commentId: number | null,
     installationId: number,
+    cause?: unknown,
   ): Promise<void> {
     if (commentId === null) return;
     try {
@@ -49,7 +50,7 @@ export class CommentsService {
         owner,
         repo,
         commentId,
-        this.buildErrorComment(),
+        this.buildErrorComment(cause),
         installationId,
       );
       this.logger.log('Updated comment to error state');
@@ -163,24 +164,111 @@ export class CommentsService {
     ].join('\n');
   }
 
-  private buildErrorComment(): string {
+  private classifyError(err: unknown): {
+    headline: string;
+    detail: string;
+    hint: string | null;
+  } {
+    const msg = err instanceof Error ? err.message : String(err);
+    const msgLower = msg.toLowerCase();
     const settingsUrl = `${this.frontendUrl()}/settings/models`;
-    return [
+
+    if (
+      msgLower.includes('timed out') ||
+      msgLower.includes('timeout') ||
+      msgLower.includes('etimedout') ||
+      msgLower.includes('deadline')
+    ) {
+      return {
+        headline: 'Review timed out',
+        detail:
+          'The AI provider took too long to respond. This can happen with large diffs or when the provider is under load.',
+        hint: 'Push a new commit or close and reopen this PR to retry. If the issue persists, try reducing the diff size.',
+      };
+    }
+
+    if (
+      msgLower.includes('rate limit') ||
+      msgLower.includes('ratelimit') ||
+      msgLower.includes('429') ||
+      msgLower.includes('too many requests') ||
+      msgLower.includes('quota')
+    ) {
+      return {
+        headline: 'AI provider rate limit reached',
+        detail:
+          'Your API key has hit its rate limit or quota with the AI provider.',
+        hint: 'Wait a few minutes, then push a new commit or reopen this PR to retry.',
+      };
+    }
+
+    if (
+      msgLower.includes('401') ||
+      msgLower.includes('403') ||
+      msgLower.includes('unauthorized') ||
+      msgLower.includes('forbidden') ||
+      msgLower.includes('invalid api key') ||
+      msgLower.includes('invalid_api_key') ||
+      msgLower.includes('authentication')
+    ) {
+      return {
+        headline: 'AI provider authentication failed',
+        detail: 'The API key is missing, invalid, or has been revoked.',
+        hint: `Visit [MergeLens → Settings → AI Models](${settingsUrl}) to update your API key, then push a new commit to retry.`,
+      };
+    }
+
+    if (
+      msgLower.includes('no provider') ||
+      msgLower.includes('unsupported provider') ||
+      msgLower.includes('no api key') ||
+      msgLower.includes('api key not') ||
+      msgLower.includes('missing key')
+    ) {
+      return {
+        headline: 'No AI provider configured',
+        detail: 'No API key has been set for any AI provider.',
+        hint: `Visit [MergeLens → Settings → AI Models](${settingsUrl}) to add your API key, then push a new commit to trigger a review.`,
+      };
+    }
+
+    if (
+      msgLower.includes('network') ||
+      msgLower.includes('econnrefused') ||
+      msgLower.includes('econnreset') ||
+      msgLower.includes('enotfound') ||
+      msgLower.includes('socket hang up') ||
+      msgLower.includes('fetch failed')
+    ) {
+      return {
+        headline: 'Network error reaching AI provider',
+        detail: 'A network error occurred while communicating with the AI provider.',
+        hint: 'This is usually transient. Push a new commit or close and reopen this PR to retry.',
+      };
+    }
+
+    return {
+      headline: 'Review failed',
+      detail: 'An unexpected error occurred during the AI review.',
+      hint: `If this keeps happening, check [MergeLens → Settings → AI Models](${settingsUrl}) to ensure your API key is valid.`,
+    };
+  }
+
+  private buildErrorComment(cause?: unknown): string {
+    const { headline, detail, hint } = this.classifyError(cause);
+    const lines = [
       WATERMARK,
-      '## ⚠️ MergeLens Review Failed',
+      `## ⚠️ MergeLens — ${headline}`,
       '',
-      'The AI review could not be completed for this pull request.',
-      '',
-      '**Common causes:**',
-      '- No AI provider API key is configured',
-      '- The configured API key is invalid or has expired',
-      '- A temporary error occurred with the AI provider',
-      '',
-      `**To fix this:** Visit [MergeLens → Settings → AI Models](${settingsUrl}) to add or update your API key, then push a new commit or close and reopen this PR to trigger a fresh review.`,
-      '',
-      '---',
-      '_Powered by [MergeLens](https://merge-lens.vercel.app) · multi-agent AI review_',
-    ].join('\n');
+      detail,
+    ];
+
+    if (hint) {
+      lines.push('', `**What to do:** ${hint}`);
+    }
+
+    lines.push('', '---', '_Powered by [MergeLens](https://merge-lens.vercel.app) · multi-agent AI review_');
+    return lines.join('\n');
   }
 
   private buildReviewComment(result: OrchestratorResult): string {

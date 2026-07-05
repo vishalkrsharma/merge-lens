@@ -139,6 +139,7 @@ model Review {
   prDescription String        @db.Text
   commitId      String
   status        ReviewStatus  @default(pending)
+  errorReason   String?       @map("error_reason")
   durationMs    Int           @default(0)
   completedAt   DateTime?
   createdAt     DateTime      @default(now())
