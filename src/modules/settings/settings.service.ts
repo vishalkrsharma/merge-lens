@@ -6,6 +6,11 @@ import {
   ModelEntry,
   findModel,
 } from '@/pipeline/llm/model-catalog';
+import {
+  AgentName,
+  DEFAULT_PROMPTS,
+  VALID_AGENT_NAMES,
+} from '@/pipeline/agents/prompts';
 
 export type ReviewProvider = (typeof REVIEW_PROVIDERS)[number];
 export const REVIEW_PROVIDERS = [
@@ -171,5 +176,23 @@ export class SettingsService {
     } catch {
       return { models: [], error: `Cannot reach Ollama at ${baseUrl}` };
     }
+  }
+
+  async getAgentPrompts(userId: string): Promise<Record<AgentName, string>> {
+    const rows = await this.prisma.userAgentPrompt.findMany({
+      where: { userId },
+    });
+    const saved = Object.fromEntries(rows.map((r) => [r.agent, r.prompt]));
+    return Object.fromEntries(
+      VALID_AGENT_NAMES.map((a) => [a, saved[a] ?? DEFAULT_PROMPTS[a]]),
+    ) as Record<AgentName, string>;
+  }
+
+  async updateAgentPrompt(userId: string, agent: AgentName, prompt: string) {
+    return this.prisma.userAgentPrompt.upsert({
+      where: { userId_agent: { userId, agent } },
+      create: { userId, agent, prompt },
+      update: { prompt },
+    });
   }
 }

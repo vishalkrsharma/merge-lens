@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -24,6 +25,7 @@ import {
   ReviewProvider,
   SettingsService,
 } from './settings.service';
+import { AgentName, VALID_AGENT_NAMES } from '@/pipeline/agents/prompts';
 
 @ApiTags('Settings')
 @ApiCookieAuth()
@@ -203,5 +205,36 @@ export class SettingsController {
     @Query('url') url?: string,
   ) {
     return this.settingsService.getOllamaModels(user.id, url);
+  }
+
+  @Get('agent-prompts')
+  @ApiOperation({ summary: 'Get all agent prompts (custom or defaults)' })
+  @ApiResponse({ status: 200 })
+  getAgentPrompts(@CurrentUser() user: { id: string }) {
+    return this.settingsService.getAgentPrompts(user.id);
+  }
+
+  @Put('agent-prompts/:agent')
+  @ApiOperation({ summary: 'Set the prompt instruction for an agent' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 400, description: 'Invalid agent name or empty prompt' })
+  updateAgentPrompt(
+    @CurrentUser() user: { id: string },
+    @Param('agent') agent: string,
+    @Body() body: { prompt: string },
+  ) {
+    if (!VALID_AGENT_NAMES.includes(agent as AgentName)) {
+      throw new BadRequestException(
+        `Invalid agent. Must be one of: ${VALID_AGENT_NAMES.join(', ')}`,
+      );
+    }
+    if (!body.prompt?.trim()) {
+      throw new BadRequestException('Prompt cannot be empty');
+    }
+    return this.settingsService.updateAgentPrompt(
+      user.id,
+      agent as AgentName,
+      body.prompt.trim(),
+    );
   }
 }

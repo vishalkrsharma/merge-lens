@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ApiProvider } from '@/generated/prisma/enums';
 import { LlmService } from '@/pipeline/llm/llm.service';
 import { BaseAgent } from './base.agent';
+import { DEFAULT_PROMPTS } from './prompts';
 import { AgentResponse, ReviewContext } from './types';
 
 @Injectable()
@@ -17,16 +18,10 @@ export class SecurityAgent extends BaseAgent {
     provider: ApiProvider,
     apiKey: string,
     modelId: string,
+    customPrompt?: string,
   ): Promise<AgentResponse> {
-    const prompt = `${this.buildDocsSection(context.docs)}You are a security expert reviewing a GitHub PR for vulnerabilities.
-
-Focus on:
-- exposed secrets, API keys, or credentials in code
-- SQL/command/script injection risks
-- insecure authentication or authorization patterns
-- exposed internal APIs or sensitive endpoints
-- insecure data handling (plaintext passwords, unencrypted PII)
-- OWASP Top 10 vulnerabilities
+    const instruction = customPrompt ?? DEFAULT_PROMPTS.security;
+    const prompt = `${this.buildDocsSection(context.docs)}${instruction}
 
 PR Title: ${context.title}
 PR Description: ${context.description}

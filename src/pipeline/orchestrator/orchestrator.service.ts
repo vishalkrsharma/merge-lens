@@ -41,6 +41,7 @@ export class OrchestratorService {
     preferredProvider?: ApiProvider | null,
     preferredModel?: string | null,
     ollamaBaseUrl?: string | null,
+    customPrompts?: Partial<Record<string, string>>,
   ): Promise<OrchestratorResult> {
     const span = this.tracing.startSpan('orchestrator.execute');
 
@@ -76,30 +77,30 @@ export class OrchestratorService {
 
     if (provider === ApiProvider.ollama) {
       bug = await run('bug', () =>
-        this.bugAgent.review(context, provider, apiKey, modelId),
+        this.bugAgent.review(context, provider, apiKey, modelId, customPrompts?.bug),
       );
       security = await run('security', () =>
-        this.securityAgent.review(context, provider, apiKey, modelId),
+        this.securityAgent.review(context, provider, apiKey, modelId, customPrompts?.security),
       );
       performance = await run('performance', () =>
-        this.performanceAgent.review(context, provider, apiKey, modelId),
+        this.performanceAgent.review(context, provider, apiKey, modelId, customPrompts?.performance),
       );
       style = await run('style', () =>
-        this.styleAgent.review(context, provider, apiKey, modelId),
+        this.styleAgent.review(context, provider, apiKey, modelId, customPrompts?.style),
       );
     } else {
       [bug, security, performance, style] = await Promise.all([
         run('bug', () =>
-          this.bugAgent.review(context, provider, apiKey, modelId),
+          this.bugAgent.review(context, provider, apiKey, modelId, customPrompts?.bug),
         ),
         run('security', () =>
-          this.securityAgent.review(context, provider, apiKey, modelId),
+          this.securityAgent.review(context, provider, apiKey, modelId, customPrompts?.security),
         ),
         run('performance', () =>
-          this.performanceAgent.review(context, provider, apiKey, modelId),
+          this.performanceAgent.review(context, provider, apiKey, modelId, customPrompts?.performance),
         ),
         run('style', () =>
-          this.styleAgent.review(context, provider, apiKey, modelId),
+          this.styleAgent.review(context, provider, apiKey, modelId, customPrompts?.style),
         ),
       ]);
     }
@@ -115,6 +116,7 @@ export class OrchestratorService {
       provider,
       apiKey,
       modelId,
+      customPrompts?.summary,
     );
     this.metrics.recordAgentDuration(
       'summary_agent',
