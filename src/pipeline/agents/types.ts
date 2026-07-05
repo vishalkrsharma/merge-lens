@@ -19,6 +19,9 @@ export interface AgentResponse {
   summary: string;
 }
 
+export type AgentName = 'bug' | 'security' | 'performance' | 'style' | 'summary';
+export type AgentPrompts = Record<AgentName, string>;
+
 export interface OrchestratorResult {
   bug: AgentResponse;
   security: AgentResponse;
