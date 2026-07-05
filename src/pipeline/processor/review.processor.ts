@@ -316,18 +316,25 @@ export class ReviewProcessor implements OnModuleInit {
         repo,
         startCommentId,
         installationId,
+        err,
       );
 
+      const errMsg = err instanceof Error ? err.message : String(err);
       await this.prisma.review
         .update({
           where: { id: reviewId },
-          data: { status: 'failed', durationMs: Date.now() - reviewStart },
+          data: {
+            status: 'failed',
+            errorReason: errMsg,
+            durationMs: Date.now() - reviewStart,
+          },
         })
         .catch(() => {});
 
       if (repository) {
         this.realtime.emitToUser(repository.userId, 'review:failed', {
           reviewId,
+          reason: errMsg,
         });
       }
 
