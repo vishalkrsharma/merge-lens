@@ -174,7 +174,7 @@ export class ReviewProcessor implements OnModuleInit {
         });
       }
 
-      const [apiKeys, user] = repository
+      const [apiKeys, user, agentPromptRows] = repository
         ? await Promise.all([
             this.apiKeysService.getDecrypted(repository.userId),
             this.prisma.user.findUnique({
@@ -185,8 +185,15 @@ export class ReviewProcessor implements OnModuleInit {
                 ollamaBaseUrl: true,
               },
             }),
+            this.prisma.userAgentPrompt.findMany({
+              where: { userId: repository.userId },
+            }),
           ])
-        : [{}, null];
+        : [{}, null, []];
+
+      const customPrompts = Object.fromEntries(
+        (agentPromptRows ?? []).map((r) => [r.agent, r.prompt]),
+      );
 
       const result = await this.orchestrator.execute(
         context,
@@ -195,6 +202,7 @@ export class ReviewProcessor implements OnModuleInit {
         user?.preferredProvider,
         user?.preferredModel,
         user?.ollamaBaseUrl,
+        customPrompts,
       );
 
       // Apply severity threshold: filter findings before posting to GitHub and saving.

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ApiProvider } from '@/generated/prisma/enums';
 import { LlmService } from '@/pipeline/llm/llm.service';
+import { DEFAULT_PROMPTS } from './prompts';
 import { AgentResponse, ReviewContext } from './types';
 
 @Injectable()
@@ -20,6 +21,7 @@ export class SummaryAgent {
     provider: ApiProvider,
     apiKey: string,
     modelId: string,
+    customPrompt?: string,
   ): Promise<string> {
     const totalFindings =
       results.bug.findings.length +
@@ -34,7 +36,8 @@ export class SummaryAgent {
       ...results.style.findings,
     ].filter((f) => f.severity === 'high').length;
 
-    const prompt = `You are a senior engineering manager summarizing a PR review.
+    const instruction = customPrompt ?? DEFAULT_PROMPTS.summary;
+    const prompt = `${instruction}
 
 PR: ${context.title}
 Description: ${context.description}
@@ -45,15 +48,7 @@ Agent summaries:
 - Performance Analysis: ${results.performance.summary}
 - Style Analysis: ${results.style.summary}
 
-Total findings: ${totalFindings} (${highFindings} high severity)
-
-Write a concise 3-4 sentence overall PR review summary covering:
-1. Overall quality and risk level (Low/Medium/High)
-2. Most critical issues to address
-3. Positive aspects if any
-4. Merge recommendation
-
-Return plain text only, no JSON, no markdown headers.`;
+Total findings: ${totalFindings} (${highFindings} high severity)`;
 
     try {
       const text = await this.llm.generate(prompt, provider, apiKey, modelId);

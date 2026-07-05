@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ApiProvider } from '@/generated/prisma/enums';
 import { LlmService } from '@/pipeline/llm/llm.service';
 import { BaseAgent } from './base.agent';
+import { DEFAULT_PROMPTS } from './prompts';
 import { AgentResponse, ReviewContext } from './types';
 
 @Injectable()
@@ -17,15 +18,10 @@ export class BugAgent extends BaseAgent {
     provider: ApiProvider,
     apiKey: string,
     modelId: string,
+    customPrompt?: string,
   ): Promise<AgentResponse> {
-    const prompt = `${this.buildDocsSection(context.docs)}You are a bug detection expert reviewing a GitHub PR.
-
-Focus on:
-- null/undefined dereferences and missing null checks
-- edge cases and boundary conditions
-- race conditions and concurrency issues
-- logic errors and off-by-one mistakes
-- unhandled exceptions and error paths
+    const instruction = customPrompt ?? DEFAULT_PROMPTS.bug;
+    const prompt = `${this.buildDocsSection(context.docs)}${instruction}
 
 PR Title: ${context.title}
 PR Description: ${context.description}

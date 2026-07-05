@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ApiProvider } from '@/generated/prisma/enums';
 import { LlmService } from '@/pipeline/llm/llm.service';
 import { BaseAgent } from './base.agent';
+import { DEFAULT_PROMPTS } from './prompts';
 import { AgentResponse, ReviewContext } from './types';
 
 @Injectable()
@@ -17,16 +18,10 @@ export class StyleAgent extends BaseAgent {
     provider: ApiProvider,
     apiKey: string,
     modelId: string,
+    customPrompt?: string,
   ): Promise<AgentResponse> {
-    const prompt = `${this.buildDocsSection(context.docs)}You are a code quality expert reviewing a GitHub PR for style and maintainability.
-
-Focus on:
-- unclear or misleading variable/function/class names
-- functions that are too long or do too many things
-- missing or incorrect documentation for public APIs
-- code duplication that should be extracted
-- deeply nested conditionals that harm readability
-- inconsistent patterns with the surrounding codebase
+    const instruction = customPrompt ?? DEFAULT_PROMPTS.style;
+    const prompt = `${this.buildDocsSection(context.docs)}${instruction}
 
 PR Title: ${context.title}
 PR Description: ${context.description}
