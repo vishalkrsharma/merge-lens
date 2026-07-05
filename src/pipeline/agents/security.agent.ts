@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ApiProvider } from '@/generated/prisma/enums';
 import { LlmService } from '@/pipeline/llm/llm.service';
 import { BaseAgent } from './base.agent';
-import { DEFAULT_PROMPTS } from './prompts';
+import { DEFAULT_AGENT_PROMPTS } from './default-prompts';
 import { AgentResponse, ReviewContext } from './types';
 
 @Injectable()
@@ -18,41 +18,13 @@ export class SecurityAgent extends BaseAgent {
     provider: ApiProvider,
     apiKey: string,
     modelId: string,
-    customPrompt?: string,
+    instruction?: string,
   ): Promise<AgentResponse> {
-    const instruction = customPrompt ?? DEFAULT_PROMPTS.security;
-    const prompt = `${this.buildDocsSection(context.docs)}${instruction}
-
-PR Title: ${context.title}
-PR Description: ${context.description}
-
-Diff:
-${context.diff}
-
-Return ONLY valid JSON. No explanation, no markdown, no code fences.
-
-STRICT RULES — violating any of these makes the response unusable:
-- "file": file path only, e.g. "src/foo.ts" — never include line ranges like "src/foo.ts:10-20"
-- "line": a single positive integer that exists in the diff above — never null, never undefined, never a range string
-- "severity": must be exactly one of the three strings: "low", "medium", "high" — never "medium-high" or any other value
-- "issue": a non-empty string describing the security issue
-- "suggestion": a non-empty string explaining how to fix it
-- If you cannot determine a valid integer line number for a finding, omit that finding entirely
-- All six fields are required on every finding — never omit or set to null/undefined
-
-{
-  "findings": [
-    {
-      "file": "src/example.ts",
-      "line": 42,
-      "severity": "high",
-      "issue": "description of the security issue",
-      "suggestion": "how to fix it"
-    }
-  ],
-  "summary": "brief summary of security analysis"
-}`;
-
+    const prompt = this.buildReviewPrompt(
+      instruction ?? DEFAULT_AGENT_PROMPTS.security,
+      context,
+      'security issue',
+    );
     return this.generate(prompt, provider, apiKey, modelId);
   }
 }

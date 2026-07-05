@@ -6,11 +6,10 @@ import {
   ModelEntry,
   findModel,
 } from '@/pipeline/llm/model-catalog';
-import {
-  AgentName,
-  DEFAULT_PROMPTS,
-  VALID_AGENT_NAMES,
-} from '@/pipeline/agents/prompts';
+import { DEFAULT_AGENT_PROMPTS } from '@/pipeline/agents/default-prompts';
+import { AgentName, AgentPrompts } from '@/pipeline/agents/types';
+
+const VALID_AGENTS: AgentName[] = ['bug', 'security', 'performance', 'style', 'summary'];
 
 export type ReviewProvider = (typeof REVIEW_PROVIDERS)[number];
 export const REVIEW_PROVIDERS = [
@@ -148,6 +147,25 @@ export class SettingsService {
     return user?.ollamaBaseUrl ?? null;
   }
 
+  async getAgentPrompts(userId: string): Promise<AgentPrompts> {
+    const saved = await this.prisma.agentPrompt.findMany({
+      where: { userId },
+      select: { agent: true, prompt: true },
+    });
+    const map = new Map(saved.map((r) => [r.agent, r.prompt]));
+    return Object.fromEntries(
+      VALID_AGENTS.map((a) => [a, map.get(a) ?? DEFAULT_AGENT_PROMPTS[a]]),
+    ) as AgentPrompts;
+  }
+
+  async setAgentPrompt(userId: string, agent: AgentName, prompt: string): Promise<void> {
+    await this.prisma.agentPrompt.upsert({
+      where: { userId_agent: { userId, agent } },
+      create: { userId, agent, prompt },
+      update: { prompt },
+    });
+  }
+
   async setOllamaUrl(userId: string, url: string | null): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
@@ -178,21 +196,5 @@ export class SettingsService {
     }
   }
 
-  async getAgentPrompts(userId: string): Promise<Record<AgentName, string>> {
-    const rows = await this.prisma.userAgentPrompt.findMany({
-      where: { userId },
-    });
-    const saved = Object.fromEntries(rows.map((r) => [r.agent, r.prompt]));
-    return Object.fromEntries(
-      VALID_AGENT_NAMES.map((a) => [a, saved[a] ?? DEFAULT_PROMPTS[a]]),
-    ) as Record<AgentName, string>;
-  }
 
-  async updateAgentPrompt(userId: string, agent: AgentName, prompt: string) {
-    return this.prisma.userAgentPrompt.upsert({
-      where: { userId_agent: { userId, agent } },
-      create: { userId, agent, prompt },
-      update: { prompt },
-    });
-  }
 }

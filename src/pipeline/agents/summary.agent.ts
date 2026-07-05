@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ApiProvider } from '@/generated/prisma/enums';
 import { LlmService } from '@/pipeline/llm/llm.service';
-import { DEFAULT_PROMPTS } from './prompts';
+import { DEFAULT_AGENT_PROMPTS } from './default-prompts';
 import { AgentResponse, ReviewContext } from './types';
 
 @Injectable()
@@ -21,7 +21,7 @@ export class SummaryAgent {
     provider: ApiProvider,
     apiKey: string,
     modelId: string,
-    customPrompt?: string,
+    instruction?: string,
   ): Promise<string> {
     const totalFindings =
       results.bug.findings.length +
@@ -36,8 +36,9 @@ export class SummaryAgent {
       ...results.style.findings,
     ].filter((f) => f.severity === 'high').length;
 
-    const instruction = customPrompt ?? DEFAULT_PROMPTS.summary;
-    const prompt = `${instruction}
+    const baseInstruction = instruction ?? DEFAULT_AGENT_PROMPTS.summary;
+
+    const prompt = `${baseInstruction}
 
 PR: ${context.title}
 Description: ${context.description}

@@ -19,13 +19,15 @@ import {
 import { ApiProvider } from '@/generated/prisma/enums';
 import { AuthGuard } from '@/common/guards/auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { AgentName } from '@/pipeline/agents/types';
 import { ApiKeysService } from './api-keys.service';
 import {
   REVIEW_PROVIDERS,
   ReviewProvider,
   SettingsService,
 } from './settings.service';
-import { AgentName, VALID_AGENT_NAMES } from '@/pipeline/agents/prompts';
+
+const VALID_AGENTS: AgentName[] = ['bug', 'security', 'performance', 'style', 'summary'];
 
 @ApiTags('Settings')
 @ApiCookieAuth()
@@ -195,6 +197,32 @@ export class SettingsController {
     return this.settingsService.setOllamaUrl(user.id, body.url);
   }
 
+  @Get('agent-prompts')
+  @ApiOperation({ summary: 'Get all agent instruction prompts for the current user' })
+  @ApiResponse({ status: 200 })
+  getAgentPrompts(@CurrentUser() user: { id: string }) {
+    return this.settingsService.getAgentPrompts(user.id);
+  }
+
+  @Put('agent-prompts/:agent')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Update the instruction prompt for a specific agent' })
+  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 400, description: 'Invalid agent name or empty prompt' })
+  async setAgentPrompt(
+    @CurrentUser() user: { id: string },
+    @Param('agent') agent: string,
+    @Body() body: { prompt: string },
+  ) {
+    if (!(VALID_AGENTS as string[]).includes(agent)) {
+      throw new BadRequestException(`Invalid agent: ${agent}`);
+    }
+    if (!body.prompt?.trim()) {
+      throw new BadRequestException('Prompt cannot be empty');
+    }
+    return this.settingsService.setAgentPrompt(user.id, agent as AgentName, body.prompt.trim());
+  }
+
   @Get('ollama-models')
   @ApiOperation({
     summary: 'List models available on the configured Ollama server',
@@ -207,34 +235,4 @@ export class SettingsController {
     return this.settingsService.getOllamaModels(user.id, url);
   }
 
-  @Get('agent-prompts')
-  @ApiOperation({ summary: 'Get all agent prompts (custom or defaults)' })
-  @ApiResponse({ status: 200 })
-  getAgentPrompts(@CurrentUser() user: { id: string }) {
-    return this.settingsService.getAgentPrompts(user.id);
-  }
-
-  @Put('agent-prompts/:agent')
-  @ApiOperation({ summary: 'Set the prompt instruction for an agent' })
-  @ApiResponse({ status: 200 })
-  @ApiResponse({ status: 400, description: 'Invalid agent name or empty prompt' })
-  updateAgentPrompt(
-    @CurrentUser() user: { id: string },
-    @Param('agent') agent: string,
-    @Body() body: { prompt: string },
-  ) {
-    if (!VALID_AGENT_NAMES.includes(agent as AgentName)) {
-      throw new BadRequestException(
-        `Invalid agent. Must be one of: ${VALID_AGENT_NAMES.join(', ')}`,
-      );
-    }
-    if (!body.prompt?.trim()) {
-      throw new BadRequestException('Prompt cannot be empty');
-    }
-    return this.settingsService.updateAgentPrompt(
-      user.id,
-      agent as AgentName,
-      body.prompt.trim(),
-    );
-  }
 }
