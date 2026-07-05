@@ -23,6 +23,17 @@ NestJS backend for MergeLens — an AI-powered GitHub PR review pipeline. Automa
 - PostgreSQL (via [Neon](https://neon.tech))
 - ngrok (for GitHub webhook tunnel)
 
+### Ports
+
+| Port | Service | How to start |
+|------|---------|--------------|
+| `8080` | NestJS backend | `pnpm start:dev` |
+| `3000` | Next.js frontend | `npm run dev` (frontend repo) |
+| `6379` | Redis | `pnpm redis:up` |
+| `9090` | Prometheus | `pnpm monitoring:up` |
+| `4000` | Grafana | `pnpm monitoring:up` |
+| `5000` | Prisma Studio | `pnpm studio` |
+
 ### Setup
 
 ```bash
@@ -91,7 +102,7 @@ After that, `git checkout feat/my-feature` will automatically update `DATABASE_U
 | `BETTER_AUTH_SECRET` | Session signing key |
 | `BETTER_AUTH_URL` | Must be the **frontend** URL (auth callbacks land on the frontend proxy) |
 | `FRONTEND_URLS` | Comma-separated allowed origins |
-| `PORT` | HTTP listen port (default: 3000) |
+| `PORT` | HTTP listen port (set to `8080` locally) |
 
 The GitHub App private key must be placed at `keys/merge-lens-private-key.pem`.
 

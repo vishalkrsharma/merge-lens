@@ -19,7 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "studio": "dotenv -e .env.local -- prisma studio --browser none",
+    "studio": "dotenv -e .env.local -- prisma studio --browser none --port 5000",
     "tunnel:up": "source ./.env.local && ngrok http --url=https://noncounterfeit-unshriven-thomasina.ngrok-free.dev $PORT",
     "github:jwt": "dotenv -e .env.local -- ts-node scripts/get-github-jwt.ts",
     "db:push": "dotenv -e .env.local -- prisma db push",
@@ -27,7 +27,9 @@
     "hooks:install": "bash scripts/install-hooks.sh",
     "migrate:deploy": "prisma migrate deploy",
     "db:reset": "dotenv -e .env.local -- ts-node scripts/clear-db.ts",
-    "github:reset": "dotenv -e .env.local -- ts-node scripts/reset-github.ts"
+    "github:reset": "dotenv -e .env.local -- ts-node scripts/reset-github.ts",
+    "monitoring:up": "docker compose -f config/monitoring-compose.yml up -d",
+    "monitoring:down": "docker compose -f config/monitoring-compose.yml down"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
