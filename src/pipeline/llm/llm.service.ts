@@ -77,16 +77,22 @@ export class LlmService {
     modelId: string,
   ): Promise<string> {
     const resolvedBase = baseUrl.trim() || OLLAMA_BASE_URL;
-    // 30-minute timeout: CPU inference on large prompts easily exceeds the SDK default 5 min
+    // Use streaming so tokens flow back continuously — Ollama's 5-minute server-side
+    // timeout only fires when the connection is idle, not while tokens are being generated.
     const client = new OpenAI({
       baseURL: `${resolvedBase}/v1`,
       apiKey: 'ollama',
       timeout: 30 * 60 * 1000,
     });
-    const completion = await client.chat.completions.create({
+    const stream = await client.chat.completions.create({
       model: modelId,
       messages: [{ role: 'user', content: prompt }],
+      stream: true,
     });
-    return completion.choices[0]?.message.content ?? '';
+    let result = '';
+    for await (const chunk of stream) {
+      result += chunk.choices[0]?.delta?.content ?? '';
+    }
+    return result;
   }
 }

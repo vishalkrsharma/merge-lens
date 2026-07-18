@@ -46,6 +46,6 @@ export class ApiKeysService {
     const keys = await this.prisma.userApiKey.findMany({ where: { userId } });
     return Object.fromEntries(
       keys.map((k) => [k.provider, decrypt(k.encrypted, this.secret)]),
-    ) as Partial<Record<ApiProvider, string>>;
+    );
   }
 }
