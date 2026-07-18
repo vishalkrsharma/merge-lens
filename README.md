@@ -4,12 +4,14 @@ NestJS backend for MergeLens — an AI-powered GitHub PR review pipeline. Automa
 
 ## Features
 
-- **Multi-agent AI review** — four parallel agents (Bug, Security, Performance, Style) followed by a Summary agent produce structured findings with file, line, severity, and fix suggestions
-- **Provider-agnostic LLM layer** — supports Anthropic, Google Gemini, OpenAI, Voyage, and Ollama (local); users bring their own API keys
-- **RAG-enhanced context** — repository docs are embedded at startup and injected into each review for richer, project-aware analysis
+- **Multi-agent AI review** — four specialized agents (Bug, Security, Performance, Style) run sequentially for Ollama or in parallel for cloud providers, followed by a Summary agent that synthesizes findings into an overall PR verdict
+- **Custom agent prompts** — users can override the system prompt for any agent; customizations are stored per-user and reset to defaults at any time
+- **Provider-agnostic LLM layer** — supports Anthropic (Claude), Google (Gemini), OpenAI (GPT), and Ollama (local); users bring their own API keys
+- **Ollama GPU support** — local inference via Ollama using ROCm (AMD) or CUDA; streaming mode bypasses Ollama's idle timeout
+- **RAG-enhanced context** — repository docs are embedded at startup with Gemini embedding-2 and injected into each agent's prompt for project-aware analysis
 - **GitHub App integration** — installs on personal accounts or organisations; webhooks trigger reviews on PR open/sync/reopen
 - **Live PR status comments** — posts a running status comment on GitHub during review, updated as each agent completes
-- **Real-time frontend updates** — Socket.io gateway emits review events so the dashboard updates without polling
+- **Real-time frontend updates** — Socket.io gateway emits review lifecycle events (`review:started`, `review:completed`, `review:failed`) so the dashboard updates without polling
 - **PostgreSQL job queue** — pg-boss handles review jobs with retry on failure; no Redis required
 - **Observability** — Prometheus metrics at `/api/metrics`, structured Pino logging, lightweight span tracing
 - **Neon preview databases** — each PR automatically gets an isolated Neon DB branch; migrations are applied and the connection string is posted as a PR comment
@@ -28,8 +30,7 @@ NestJS backend for MergeLens — an AI-powered GitHub PR review pipeline. Automa
 | Port | Service | How to start |
 |------|---------|--------------|
 | `8080` | NestJS backend | `pnpm start:dev` |
-| `3000` | Next.js frontend | `npm run dev` (frontend repo) |
-| `6379` | Redis | `pnpm redis:up` |
+| `3000` | Next.js frontend | `pnpm dev` (frontend repo) |
 | `9090` | Prometheus | `pnpm monitoring:up` |
 | `4000` | Grafana | `pnpm monitoring:up` |
 | `5000` | Prisma Studio | `pnpm studio` |
@@ -54,6 +55,7 @@ pnpm dev           # watch mode + ngrok tunnel (parallel)
 ```bash
 pnpm studio              # open Prisma Studio
 npx prisma migrate dev   # create and apply a new migration
+npx prisma generate      # regenerate Prisma client
 pnpm migrate:deploy      # apply existing migrations (used in CI)
 pnpm db:push             # push schema without migrations (prototyping only)
 ```
@@ -86,7 +88,7 @@ After that, `git checkout feat/my-feature` will automatically update `DATABASE_U
 
 | Secret | Value |
 |--------|-------|
-| `NEON_PROJECT_ID` | `falling-field-21678175` |
+| `NEON_PROJECT_ID` | Your Neon project ID |
 | `NEON_API_KEY` | Generate at console.neon.tech → Account settings → API keys |
 
 ## Environment variables
@@ -94,15 +96,18 @@ After that, `git checkout feat/my-feature` will automatically update `DATABASE_U
 | Variable | Purpose |
 |----------|---------|
 | `DATABASE_URL` | PostgreSQL (Neon) connection string |
-| `GOOGLE_API_KEY` | Gemini LLM + embeddings |
+| `GOOGLE_API_KEY` | Gemini LLM + embeddings (required if using Google provider) |
+| `ANTHROPIC_API_KEY` | Anthropic Claude (optional — users can supply their own) |
+| `OPENAI_API_KEY` | OpenAI GPT (optional — users can supply their own) |
+| `OLLAMA_BASE_URL` | Ollama server URL (default: `http://localhost:11434`) |
 | `GITHUB_APP_ID` | GitHub App numeric ID |
 | `GITHUB_CLIENT_ID` | OAuth app client ID |
 | `GITHUB_CLIENT_SECRET` | OAuth app client secret |
 | `GITHUB_WEBHOOK_SECRET` | HMAC webhook verification |
 | `BETTER_AUTH_SECRET` | Session signing key |
-| `BETTER_AUTH_URL` | Must be the **frontend** URL (auth callbacks land on the frontend proxy) |
-| `FRONTEND_URLS` | Comma-separated allowed origins |
-| `PORT` | HTTP listen port (set to `8080` locally) |
+| `BETTER_AUTH_URL` | Must be the **frontend** URL — better-auth generates OAuth callback URLs from this so they land on the frontend auth proxy |
+| `FRONTEND_URLS` | Comma-separated allowed origins for CORS and trusted auth origins |
+| `PORT` | HTTP listen port (default: `8080` locally, `10000` on Render) |
 
 The GitHub App private key must be placed at `keys/merge-lens-private-key.pem`.
 

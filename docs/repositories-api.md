@@ -3,7 +3,8 @@
 ## Base URL
 
 ```
-http://localhost:8000   (development)
+http://localhost:8080   (development)
+https://merge-lens-backend.onrender.com   (production)
 ```
 
 All requests must include cookies (the session cookie set by the auth flow). Use `credentials: 'include'` on every fetch call.
