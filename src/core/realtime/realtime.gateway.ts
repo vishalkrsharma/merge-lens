@@ -16,6 +16,9 @@ const FRONTEND_ORIGINS = process.env.FRONTEND_URLS?.split(',').map((o) =>
 @Injectable()
 @WebSocketGateway({
   cors: { origin: FRONTEND_ORIGINS, credentials: true },
+  // Keep connections alive through Render's 55s proxy idle timeout
+  pingInterval: 10000,
+  pingTimeout: 5000,
 })
 export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
   private readonly logger = new Logger(RealtimeGateway.name);
@@ -32,25 +35,30 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
   }
 
   async handleConnection(socket: Socket) {
-    const token = socket.handshake.auth?.token as string | undefined;
-    if (!token) {
+    try {
+      const token = socket.handshake.auth?.token as string | undefined;
+      if (!token) {
+        socket.disconnect();
+        return;
+      }
+
+      const session = await auth.api.getSession({
+        headers: new Headers({
+          cookie: `better-auth.session_token=${token}`,
+        }),
+      });
+
+      if (!session?.user) {
+        socket.disconnect();
+        return;
+      }
+
+      socket.data.userId = session.user.id;
+      await socket.join(`user:${session.user.id}`);
+      this.logger.log(`Socket connected: user ${session.user.id}`);
+    } catch (err) {
+      this.logger.error('Socket connection error', err);
       socket.disconnect();
-      return;
     }
-
-    const session = await auth.api.getSession({
-      headers: new Headers({
-        cookie: `better-auth.session_token=${token}`,
-      }),
-    });
-
-    if (!session?.user) {
-      socket.disconnect();
-      return;
-    }
-
-    socket.data.userId = session.user.id;
-    await socket.join(`user:${session.user.id}`);
-    this.logger.log(`Socket connected: user ${session.user.id}`);
   }
 }
