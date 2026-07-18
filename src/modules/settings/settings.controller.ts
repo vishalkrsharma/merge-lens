@@ -251,7 +251,10 @@ export class SettingsController {
     if (!(VALID_AGENTS as string[]).includes(agent)) {
       throw new BadRequestException(`Invalid agent: ${agent}`);
     }
-    return this.settingsService.resetAgentPrompt(user.id, agent as AgentName);
+    return await this.settingsService.resetAgentPrompt(
+      user.id,
+      agent as AgentName,
+    );
   }
 
   @Get('ollama-models')
