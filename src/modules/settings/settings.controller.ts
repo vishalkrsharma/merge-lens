@@ -27,7 +27,13 @@ import {
   SettingsService,
 } from './settings.service';
 
-const VALID_AGENTS: AgentName[] = ['bug', 'security', 'performance', 'style', 'summary'];
+const VALID_AGENTS: AgentName[] = [
+  'bug',
+  'security',
+  'performance',
+  'style',
+  'summary',
+];
 
 @ApiTags('Settings')
 @ApiCookieAuth()
@@ -198,7 +204,9 @@ export class SettingsController {
   }
 
   @Get('agent-prompts')
-  @ApiOperation({ summary: 'Get all agent instruction prompts for the current user' })
+  @ApiOperation({
+    summary: 'Get all agent instruction prompts for the current user',
+  })
   @ApiResponse({ status: 200 })
   getAgentPrompts(@CurrentUser() user: { id: string }) {
     return this.settingsService.getAgentPrompts(user.id);
@@ -206,9 +214,14 @@ export class SettingsController {
 
   @Put('agent-prompts/:agent')
   @HttpCode(204)
-  @ApiOperation({ summary: 'Update the instruction prompt for a specific agent' })
+  @ApiOperation({
+    summary: 'Update the instruction prompt for a specific agent',
+  })
   @ApiResponse({ status: 204 })
-  @ApiResponse({ status: 400, description: 'Invalid agent name or empty prompt' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid agent name or empty prompt',
+  })
   async setAgentPrompt(
     @CurrentUser() user: { id: string },
     @Param('agent') agent: string,
@@ -220,7 +233,25 @@ export class SettingsController {
     if (!body.prompt?.trim()) {
       throw new BadRequestException('Prompt cannot be empty');
     }
-    return this.settingsService.setAgentPrompt(user.id, agent as AgentName, body.prompt.trim());
+    return this.settingsService.setAgentPrompt(
+      user.id,
+      agent as AgentName,
+      body.prompt.trim(),
+    );
+  }
+
+  @Delete('agent-prompts/:agent')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Reset an agent prompt to its default' })
+  @ApiResponse({ status: 204 })
+  async resetAgentPrompt(
+    @CurrentUser() user: { id: string },
+    @Param('agent') agent: string,
+  ) {
+    if (!(VALID_AGENTS as string[]).includes(agent)) {
+      throw new BadRequestException(`Invalid agent: ${agent}`);
+    }
+    return this.settingsService.resetAgentPrompt(user.id, agent as AgentName);
   }
 
   @Get('ollama-models')
@@ -234,5 +265,4 @@ export class SettingsController {
   ) {
     return this.settingsService.getOllamaModels(user.id, url);
   }
-
 }

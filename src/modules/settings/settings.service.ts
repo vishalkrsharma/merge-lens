@@ -9,7 +9,13 @@ import {
 import { DEFAULT_AGENT_PROMPTS } from '@/pipeline/agents/default-prompts';
 import { AgentName, AgentPrompts } from '@/pipeline/agents/types';
 
-const VALID_AGENTS: AgentName[] = ['bug', 'security', 'performance', 'style', 'summary'];
+const VALID_AGENTS: AgentName[] = [
+  'bug',
+  'security',
+  'performance',
+  'style',
+  'summary',
+];
 
 export type ReviewProvider = (typeof REVIEW_PROVIDERS)[number];
 export const REVIEW_PROVIDERS = [
@@ -158,12 +164,20 @@ export class SettingsService {
     ) as AgentPrompts;
   }
 
-  async setAgentPrompt(userId: string, agent: AgentName, prompt: string): Promise<void> {
+  async setAgentPrompt(
+    userId: string,
+    agent: AgentName,
+    prompt: string,
+  ): Promise<void> {
     await this.prisma.agentPrompt.upsert({
       where: { userId_agent: { userId, agent } },
       create: { userId, agent, prompt },
       update: { prompt },
     });
+  }
+
+  async resetAgentPrompt(userId: string, agent: AgentName): Promise<void> {
+    await this.prisma.agentPrompt.deleteMany({ where: { userId, agent } });
   }
 
   async setOllamaUrl(userId: string, url: string | null): Promise<void> {
@@ -195,6 +209,4 @@ export class SettingsService {
       return { models: [], error: `Cannot reach Ollama at ${baseUrl}` };
     }
   }
-
-
 }
