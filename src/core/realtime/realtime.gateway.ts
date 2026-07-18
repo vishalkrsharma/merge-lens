@@ -42,9 +42,10 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
         return;
       }
 
+      // useSecureCookies:true prefixes the cookie name with __Secure-
       const session = await auth.api.getSession({
         headers: new Headers({
-          cookie: `better-auth.session_token=${token}`,
+          cookie: `__Secure-better-auth.session_token=${token}`,
         }),
       });
 
