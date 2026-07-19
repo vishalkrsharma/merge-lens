@@ -26,6 +26,7 @@ import {
   ReviewProvider,
   SettingsService,
 } from './settings.service';
+import { EMBEDDING_PROVIDERS, EmbeddingProvider } from '@/pipeline/rag/embedding-catalog';
 
 const VALID_AGENTS: AgentName[] = [
   'bug',
@@ -267,5 +268,35 @@ export class SettingsController {
     @Query('url') url?: string,
   ) {
     return this.settingsService.getOllamaModels(user.id, url);
+  }
+
+  @Get('embedding-models')
+  @ApiOperation({ summary: 'List available embedding models (Google + OpenAI; Ollama is dynamic)' })
+  @ApiResponse({ status: 200, schema: { type: 'array' } })
+  getEmbeddingModels() {
+    return this.settingsService.getEmbeddingModels();
+  }
+
+  @Get('preferred-embedding-model')
+  @ApiOperation({ summary: "Get user's preferred embedding model" })
+  @ApiResponse({
+    status: 200,
+    schema: { properties: { model: { type: 'string', nullable: true } } },
+  })
+  getPreferredEmbeddingModel(@CurrentUser() user: { id: string }) {
+    return this.settingsService
+      .getPreferredEmbeddingModel(user.id)
+      .then((model) => ({ model }));
+  }
+
+  @Put('preferred-embedding-model')
+  @HttpCode(204)
+  @ApiOperation({ summary: "Set user's preferred embedding model" })
+  @ApiResponse({ status: 204 })
+  setPreferredEmbeddingModel(
+    @CurrentUser() user: { id: string },
+    @Body() body: { model: string | null },
+  ) {
+    return this.settingsService.setPreferredEmbeddingModel(user.id, body.model);
   }
 }

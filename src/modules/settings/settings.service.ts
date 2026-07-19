@@ -6,6 +6,13 @@ import {
   ModelEntry,
   findModel,
 } from '@/pipeline/llm/model-catalog';
+import {
+  EMBEDDING_CATALOG,
+  EmbeddingModelEntry,
+  EmbeddingProvider,
+  EMBEDDING_PROVIDERS,
+  DEFAULT_EMBEDDING_MODEL,
+} from '@/pipeline/rag/embedding-catalog';
 import { DEFAULT_AGENT_PROMPTS } from '@/pipeline/agents/default-prompts';
 import { AgentName, AgentPrompts } from '@/pipeline/agents/types';
 
@@ -113,6 +120,28 @@ export class SettingsService {
 
   getModels(): ModelEntry[] {
     return MODEL_CATALOG;
+  }
+
+  getEmbeddingModels(): EmbeddingModelEntry[] {
+    return EMBEDDING_CATALOG;
+  }
+
+  async getPreferredEmbeddingModel(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferredEmbeddingModel: true },
+    });
+    return user?.preferredEmbeddingModel ?? null;
+  }
+
+  async setPreferredEmbeddingModel(
+    userId: string,
+    model: string | null,
+  ): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { preferredEmbeddingModel: model ?? null },
+    });
   }
 
   async getPreferredModel(
