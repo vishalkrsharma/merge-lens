@@ -63,7 +63,7 @@ export class SettingsController {
             properties: {
               provider: {
                 type: 'string',
-                enum: ['anthropic', 'google', 'openai', 'voyage'],
+                enum: ['google', 'openai', 'voyage', 'ollama'],
               },
               calls: { type: 'number' },
               inputTokens: { type: 'number' },

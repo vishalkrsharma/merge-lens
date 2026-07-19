@@ -30,7 +30,6 @@ high
 }
 
 enum ApiProvider {
-anthropic
 google
 openai
 voyage

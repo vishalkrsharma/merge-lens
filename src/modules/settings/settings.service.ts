@@ -27,7 +27,6 @@ const VALID_AGENTS: AgentName[] = [
 export type ReviewProvider = (typeof REVIEW_PROVIDERS)[number];
 export const REVIEW_PROVIDERS = [
   ApiProvider.google,
-  ApiProvider.anthropic,
   ApiProvider.openai,
 ] as const;
 
