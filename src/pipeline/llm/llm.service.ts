@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { ApiProvider } from '@/generated/prisma/enums';
 
@@ -21,8 +20,6 @@ export class LlmService {
     switch (provider) {
       case ApiProvider.google:
         return await this.generateGoogle(prompt, apiKey, modelId);
-      case ApiProvider.anthropic:
-        return await this.generateAnthropic(prompt, apiKey, modelId);
       case ApiProvider.openai:
         return await this.generateOpenAI(prompt, apiKey, modelId);
       case ApiProvider.ollama:
@@ -41,21 +38,6 @@ export class LlmService {
     const model = ai.getGenerativeModel({ model: modelId });
     const result = await model.generateContent(prompt);
     return result.response.text() ?? '';
-  }
-
-  private async generateAnthropic(
-    prompt: string,
-    apiKey: string,
-    modelId: string,
-  ): Promise<string> {
-    const client = new Anthropic({ apiKey });
-    const message = await client.messages.create({
-      model: modelId,
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
-    });
-    const block = message.content[0];
-    return block?.type === 'text' ? block.text : '';
   }
 
   private async generateOpenAI(

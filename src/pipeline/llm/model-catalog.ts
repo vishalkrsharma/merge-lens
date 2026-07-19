@@ -41,37 +41,6 @@ export const MODEL_CATALOG: ModelEntry[] = [
     provider: ApiProvider.google,
     description: 'Lightweight',
   },
-  // Anthropic
-  {
-    id: 'claude-opus-4-8',
-    name: 'Claude Opus 4',
-    provider: ApiProvider.anthropic,
-    description: 'Most intelligent',
-  },
-  {
-    id: 'claude-sonnet-4-6',
-    name: 'Claude Sonnet 4',
-    provider: ApiProvider.anthropic,
-    description: 'Balanced performance',
-  },
-  {
-    id: 'claude-haiku-4-5-20251001',
-    name: 'Claude Haiku 4',
-    provider: ApiProvider.anthropic,
-    description: 'Fast & affordable',
-  },
-  {
-    id: 'claude-3-5-sonnet-20241022',
-    name: 'Claude 3.5 Sonnet',
-    provider: ApiProvider.anthropic,
-    description: 'Previous gen best',
-  },
-  {
-    id: 'claude-3-5-haiku-20241022',
-    name: 'Claude 3.5 Haiku',
-    provider: ApiProvider.anthropic,
-    description: 'Previous gen fast',
-  },
   // OpenAI
   {
     id: 'gpt-4o',

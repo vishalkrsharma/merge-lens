@@ -30,7 +30,6 @@ high
 }
 
 enum ApiProvider {
-anthropic
 google
 openai
 voyage
@@ -46,9 +45,10 @@ model User {
   emailVerified       Boolean   @default(false)
   image               String?
   hasGithubApp        Boolean    @default(false) @map("has_github_app")
-  preferredProvider   ApiProvider? @map("preferred_provider")
-  preferredModel      String?      @map("preferred_model")
-  ollamaBaseUrl       String?      @map("ollama_base_url")
+  preferredProvider        ApiProvider? @map("preferred_provider")
+  preferredModel           String?      @map("preferred_model")
+  preferredEmbeddingModel  String?      @map("preferred_embedding_model")
+  ollamaBaseUrl            String?      @map("ollama_base_url")
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   sessions            Session[]
